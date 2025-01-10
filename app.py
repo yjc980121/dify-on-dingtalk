@@ -52,7 +52,7 @@ def run():
             else:
                 raise ValueError(f"不支持的机器人类型：{bot['dify_app_type']}")
             # bot_dify_client = ChatClient(api_key=bot["dify_app_api_key"], base_url=DIFY_OPEN_API_URL)
-            handler_params = {"dify_api_client": bot_dify_client}
+            handler_params = {"dify_api_client": bot_dify_client,"bot_config": bot}
             bot_handler = HandlerFactory.create_handler(bot["handler"], **handler_params)
             for _ in range(bot_worker_num):
                 futures.append(executor.submit(start_dingtalk_stream_client, bot_app_client_id, bot_app_client_secret, bot_handler))

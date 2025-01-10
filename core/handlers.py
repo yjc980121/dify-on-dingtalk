@@ -25,10 +25,12 @@ class HandlerFactory(object):
 
 class DifyAiCardBotHandler(ChatbotHandler):
 
-    def __init__(self, dify_api_client: DifyClient):
+    def __init__(self, dify_api_client: DifyClient,bot_config: dict):
         super().__init__()
         self.dify_api_client = dify_api_client
-        self.cache = Cache(expiry_time=60 * int(os.getenv("DIFY_CONVERSATION_REMAIN_TIME")))  # 每个用户维持会话时间xx秒
+        # 将app_id作为缓存的key
+        self.cache = Cache(expiry_time=60 * int(os.getenv("DIFY_CONVERSATION_REMAIN_TIME")),app_id=bot_config["dingtalk_app_client_id"])  # 每个用户维持会话时间xx秒
+        self.bot_config = bot_config
 
     async def process(self, callback_msg: CallbackMessage):
         logger.debug(callback_msg)

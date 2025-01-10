@@ -15,8 +15,10 @@ class RedisCache:
         password = os.getenv("REDIS_PASSWORD", "")
         db = int(os.getenv("REDIS_DB", "0"))
         self.redis_client = redis.Redis(host=host, port=port, db=db, password=password)
+        self.app_name = os.getenv("APP_NAME", "dify-on-dingtalk")
 
     def _is_expired(self, key):
+        # 使用原始的key检查是否过期
         # 如果 expiry_time 为 -1，表示永不过期
         if self.expiry_time == -1:
             return False
@@ -29,6 +31,8 @@ class RedisCache:
         return ttl <= 0  # 键已过期
 
     def set(self, key, value):
+        # 对操作的key添加前缀
+        key = f"{self.app_name}:{key}"
         if self.expiry_time == -1:
             # 永不过期，使用 set 方法
             self.redis_client.set(key, value)
@@ -37,6 +41,8 @@ class RedisCache:
             self.redis_client.setex(key, self.expiry_time, value)
 
     def get(self, key):
+        # 对操作的key添加前缀
+        key = f"{self.app_name}:{key}"
         if self.redis_client.exists(key):
             if not self._is_expired(key):
                 value = self.redis_client.get(key)
@@ -50,14 +56,16 @@ class RedisCache:
         if self.expiry_time == -1:
             return
         # 清理过期的键
-        keys = self.redis_client.keys('*')
+        # 获取所有以 app_name 开头的键,本身带有前缀
+        keys = self.redis_client.keys(f'{self.app_name}:*')
         for key in keys:
+            # 如果键已过期，删除它
             if self._is_expired(key):
                 self.redis_client.delete(key)
 
     def __str__(self):
         # 用于查看缓存内容
-        keys = self.redis_client.keys('*')
+        keys = self.redis_client.keys(f'{self.app_name}:*')
         cache = {}
         for key in keys:
             if not self._is_expired(key):

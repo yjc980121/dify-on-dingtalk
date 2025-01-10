@@ -1,10 +1,27 @@
+version: '3.8'
+
 services:
-  dod-app:
-    image: zfanswer/dify-on-dingtalk:latest
-    build:
-      context: ../
-      dockerfile: Dockerfile
-    env_file:
-      - .env
+  fastapi:
+    image: python:3.12-slim
+    container_name: dify_on_dingtalk
+    restart: unless-stopped
     volumes:
-      - ./.bots.yaml:/app/.bots.yaml
+      - .:/work
+      - pip_cache:/root/.cache/pip
+    working_dir: /work
+    command: >
+      sh -c "
+            # 安装系统依赖
+            pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple &&
+            pip install -r requirements.txt &&
+            # 运行
+            python app.py
+    networks:
+      - 1panel-network
+
+networks:
+  1panel-network:
+    external: true
+
+volumes:
+  pip_cache:
