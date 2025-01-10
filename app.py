@@ -12,6 +12,9 @@ from configs import DIFY_OPEN_API_URL, LOG_LEVEL, load_bots_config, DEFAULT_MAX_
 from core.dify_client import ChatClient, CompletionClient, WorkflowClient
 from core.handlers import HandlerFactory
 
+from dotenv import load_dotenv
+load_dotenv(override=False, verbose=True)
+
 logger.remove()
 logger.add(sys.stdout, level=LOG_LEVEL)
 

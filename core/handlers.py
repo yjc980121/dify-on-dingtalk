@@ -9,7 +9,7 @@ from dingtalk_stream import AckMessage, ChatbotHandler, CallbackHandler, Callbac
 from loguru import logger
 from sseclient import SSEClient
 
-from core.cache import Cache
+from core.rediscache import RedisCache as Cache
 from core.dify_client import ChatClient, DifyClient
 
 
@@ -90,9 +90,15 @@ class DifyAiCardBotHandler(ChatbotHandler):
             request_content = incoming_message.text.content
         conversation_id = self.cache.get(incoming_message.sender_staff_id)
         response = self.dify_api_client.query(
-            inputs={},
+            inputs={
+                    "platform": "dingtalk",
+                    "userName": incoming_message.sender_nick, 
+                    "userId": incoming_message.sender_staff_id,
+                    "conversationType": incoming_message.conversation_type,
+                    "conversationTitle": incoming_message.conversation_title,
+                    },
             query=request_content,
-            user=incoming_message.sender_nick,
+            user=incoming_message.sender_staff_id,
             response_mode="streaming",
             files=None,
             conversation_id=conversation_id,  # 需要考虑下怎么让一个用户的回话保持自己的上下文

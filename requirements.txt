@@ -6,3 +6,4 @@ loguru
 python-dotenv==1.0.1
 PyYAML==6.0.1
 sseclient-py==1.8.0
+redis
