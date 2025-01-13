@@ -8,8 +8,9 @@ class Cache:
     def __init__(self, expiry_time=60, app_id=None):
         self.cache = {}  # 普通的字典来存储数据
         self.expiry_time = expiry_time
-        self.app_id = app_id
         self.app_name = os.getenv("APP_NAME", "dify-on-dingtalk")
+        if app_id:
+            self.app_name = f"{self.app_name}:{app_id}"
 
     def _is_expired(self, key):
         # 使用原始的key检查是否过期

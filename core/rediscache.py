@@ -7,7 +7,7 @@ import os
 
 
 class RedisCache:
-    def __init__(self, expiry_time=60):
+    def __init__(self, expiry_time=60, app_id=None):
         #self.expiry_time = expiry_time
         self.expiry_time = -1 # 设置永不过期
         host = os.getenv("REDIS_HOST", "localhost")
@@ -16,6 +16,8 @@ class RedisCache:
         db = int(os.getenv("REDIS_DB", "0"))
         self.redis_client = redis.Redis(host=host, port=port, db=db, password=password)
         self.app_name = os.getenv("APP_NAME", "dify-on-dingtalk")
+        if app_id:
+            self.app_name = f"{self.app_name}:{app_id}"
 
     def _is_expired(self, key):
         # 使用原始的key检查是否过期
