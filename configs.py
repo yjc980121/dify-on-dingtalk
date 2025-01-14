@@ -26,7 +26,7 @@ def load_bots_config():
     load bots config from file
     :return:
     """
-    with open(".bots.yaml", "r") as f:
+    with open(".bots.yaml", "r", encoding="utf-8") as f:
         bots_conf = yaml.safe_load(f)
     return bots_conf
 

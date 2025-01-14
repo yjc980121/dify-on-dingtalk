@@ -3,6 +3,7 @@
 # __author__ = 'zfanswer'
 import json
 import os
+import traceback
 from typing import Callable
 
 from dingtalk_stream import AckMessage, ChatbotHandler, CallbackHandler, CallbackMessage, ChatbotMessage, AICardReplier
@@ -47,7 +48,7 @@ class DifyAiCardBotHandler(ChatbotHandler):
         content_key = "content"
         card_data = {content_key: ""}
         card_instance = AICardReplier(self.dingtalk_client, incoming_message)
-        # 先投放卡片
+        # 先投放卡片(需要发布卡片，才能获取卡片实例id)
         card_instance_id = card_instance.create_and_send_card(card_template_id, card_data, callback_type="STREAM")
         # 再流式更新卡片
         try:
@@ -72,6 +73,7 @@ class DifyAiCardBotHandler(ChatbotHandler):
                 failed=False,
             )
         except Exception as e:
+            print(traceback.print_exc())
             logger.exception(e)
             card_instance.streaming(
                 card_instance_id,
@@ -90,7 +92,9 @@ class DifyAiCardBotHandler(ChatbotHandler):
             request_content = ""
         else:
             request_content = incoming_message.text.content
-        conversation_id = self.cache.get(incoming_message.sender_staff_id)
+        user_id = f"dingtalk-{incoming_message.sender_nick}-{incoming_message.sender_staff_id}"
+        conversation_id = self.cache.get(user_id)
+        #print(f"conversation_id={conversation_id}")
         response = self.dify_api_client.query(
             inputs={
                     "platform": "dingtalk",
@@ -100,7 +104,7 @@ class DifyAiCardBotHandler(ChatbotHandler):
                     "conversationTitle": incoming_message.conversation_title,
                     },
             query=request_content,
-            user=incoming_message.sender_staff_id,
+            user=user_id,
             response_mode="streaming",
             files=None,
             conversation_id=conversation_id,  # 需要考虑下怎么让一个用户的回话保持自己的上下文
@@ -149,7 +153,7 @@ class DifyAiCardBotHandler(ChatbotHandler):
             elif r.get("event") in ["message_end"]:
                 # 对话结束消息处理
                 # 接收到模型服务返回：{'event': 'message_end', 'conversation_id': 'd881314b-5e75-45cb-8aac-16e2bed5a09c', 'message_id': '977bf584-5e11-4493-9b98-e56226d9e9a0', 'created_at': 1722310961, 'task_id': 'b3840f55-34b0-4479-8240-ad6b3af76401', 'id': '977bf584-5e11-4493-9b98-e56226d9e9a0', 'metadata': {'usage': {'prompt_tokens': 1279, 'prompt_unit_price': '0.0005', 'prompt_price_unit': '0.001', 'prompt_price': '0.0006395', 'completion_tokens': 66, 'completion_unit_price': '0.0015', 'completion_price_unit': '0.001', 'completion_price': '0.0000990', 'total_tokens': 507, 'total_price': '0.0002605', 'currency': 'USD', 'latency': 1.715979496948421}}}
-                self.cache.set(incoming_message.sender_staff_id, r.get("conversation_id"))
+                self.cache.set(user_id, r.get("conversation_id"))
             else:
                 # raise NotImplementedError(f"Event: {r.get('event')}, not implemented.")
                 logger.exception(f"Event: {r.get('event')}, not implemented.")
