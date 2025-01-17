@@ -105,7 +105,6 @@ python app.py
 | DEFAULT_MAX_WORKERS           | 默认对每个bot启动的监听线程数，调高可以提高并发，不过由于线程不会释放所以需要谨慎调高。这里只是默认值，每个bot具体的线程数可以在.bot.yaml文件中分别调整。 | 2                     |
 | DIFY_OPEN_API_URL             | Dify api的地址，在应用的api页面中可以查看到，默认是Dify saas服务地址。                                        | https://api.dify.ai/v1 |
 | DIFY_CONVERSATION_REMAIN_TIME | 会话过期时间，超过这个时间会自动结束会话，单位是分，参数已经启用，改用redis,永不过期，留着兼容用途。                                                          | 15                    |
-| DINGTALK_AI_CARD_TEMPLATE_ID  | 钉钉AI卡片模板的模版ID，可以在卡片平台中获取，必须使用这个才可以流式输出。                                              |                       |
 
 ### .bots.yaml配置说明
 
@@ -116,7 +115,8 @@ python app.py
 |----------------------------|-------------------------------------------------------------------------------------|------|
 | name                       | 机器人名称，用于区分不同的机器人。                                                                   | 是    |
 | dingtalk_app_client_id     | 钉钉开放平台应用的client_id，可以在钉钉开放平台中获取。                                                    | 是    |
-| dingtalk_app_client_secret | 钉钉开放平台应用的client_secret，可以在钉钉开放平台中获取。                                                | 是    |                |      |
+| dingtalk_app_client_secret | 钉钉开放平台应用的client_secret，可以在钉钉开放平台中获取。                                                | 是    |
+| dingtalk_ai_card_template_id | 钉钉AI卡片模板的模版ID，可以在卡片平台中获取，必须使用这个才可以流式输出。                                              | 否    |
 | dify_app_type              | 对应Dify应用类型聊天助手、工作流、文本生成。须用这3项之一：chatbot, completion, workflow，参考下图，AGENT也算做chatbot。 | 是    |
 | dify_app_api_key           | 对应Dify应用的api_key，可以在应用的api页面中获取。                                                    | 是    |
 | handler                    | handler类名。                                                                          | 是    |

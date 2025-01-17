@@ -29,9 +29,24 @@ class DifyAiCardBotHandler(ChatbotHandler):
     def __init__(self, dify_api_client: DifyClient,bot_config: dict):
         super().__init__()
         self.dify_api_client = dify_api_client
+        self.bot_config = bot_config
         # 将app_id作为缓存的key
         self.cache = Cache(expiry_time=60 * int(os.getenv("DIFY_CONVERSATION_REMAIN_TIME")),app_id=bot_config["dingtalk_app_client_id"])  # 每个用户维持会话时间xx秒
-        self.bot_config = bot_config
+        self.validate_settings()
+    
+    def validate_settings(self):
+        if self.bot_config["dingtalk_app_client_id"] is None:
+            raise ValueError("dingtalk_app_client_id must be set")
+        if self.bot_config["dingtalk_app_client_secret"] is None:
+            raise ValueError("dingtalk_app_client_secret must be set")
+        if self.bot_config["dingtalk_ai_card_template_id"] is None:
+            raise ValueError("dingtalk_ai_card_template_id must be set")
+        if self.bot_config["dify_app_type"] is None:
+            raise ValueError("dify_app_type must be set")
+        if self.bot_config["dify_app_api_key"] is None:
+            raise ValueError("dify_app_api_key must be set")
+        if self.bot_config["handler"] is None:
+            raise ValueError("handler must be set")
 
     async def process(self, callback_msg: CallbackMessage):
         logger.debug(callback_msg)
@@ -44,7 +59,8 @@ class DifyAiCardBotHandler(ChatbotHandler):
             return AckMessage.STATUS_OK, "OK"
 
         # 在企业开发者后台配置的卡片模版id https://open-dev.dingtalk.com/fe/card
-        card_template_id = os.getenv("DINGTALK_AI_CARD_TEMPLATE_ID")
+        #card_template_id = os.getenv("DINGTALK_AI_CARD_TEMPLATE_ID")
+        card_template_id = self.bot_config["dingtalk_ai_card_template_id"]
         content_key = "content"
         card_data = {content_key: ""}
         card_instance = AICardReplier(self.dingtalk_client, incoming_message)
