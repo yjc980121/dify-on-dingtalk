@@ -21,7 +21,7 @@ class TestChatClient(unittest.TestCase):
         conversation_id = "conv_id"
         files = None
 
-        self.chat_client.create_chat_message(inputs, query, user, response_mode, conversation_id, files)
+        self.chat_client.create_chat_messages(inputs, query, user, response_mode, conversation_id, files)
 
         mock_send_request.assert_called_once_with(
             "POST",
@@ -47,7 +47,7 @@ class TestChatClient(unittest.TestCase):
         conversation_id = None
         files = None
 
-        self.chat_client.create_chat_message(inputs, query, user, response_mode, conversation_id, files)
+        self.chat_client.create_chat_messages(inputs, query, user, response_mode, conversation_id, files)
 
         mock_send_request.assert_called_once_with(
             "POST",

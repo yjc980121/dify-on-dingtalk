@@ -11,7 +11,7 @@ from loguru import logger
 from sseclient import SSEClient
 
 from core.rediscache import RedisCache as Cache
-from core.dify_client import ChatClient, DifyClient
+from core.dify_client import DifyClient
 
 
 class HandlerFactory(object):
@@ -26,14 +26,15 @@ class HandlerFactory(object):
 
 class DifyAiCardBotHandler(ChatbotHandler):
 
-    def __init__(self, dify_api_client: DifyClient,bot_config: dict):
+    def __init__(self, dify_api_client: DifyClient, bot_config: dict):
         super().__init__()
         self.dify_api_client = dify_api_client
         self.bot_config = bot_config
         # 将app_id作为缓存的key
-        self.cache = Cache(expiry_time=60 * int(os.getenv("DIFY_CONVERSATION_REMAIN_TIME")),app_id=bot_config["dingtalk_app_client_id"])  # 每个用户维持会话时间xx秒
+        remain_time = os.getenv("DIFY_CONVERSATION_REMAIN_TIME", "0")
+        self.cache = Cache(expiry_time=60 * int(remain_time), app_id=bot_config["dingtalk_app_client_id"])  # 每个用户维持会话时间xx秒
         self.validate_settings()
-    
+
     def validate_settings(self):
         if self.bot_config["dingtalk_app_client_id"] is None:
             raise ValueError("dingtalk_app_client_id must be set")
@@ -59,7 +60,7 @@ class DifyAiCardBotHandler(ChatbotHandler):
             return AckMessage.STATUS_OK, "OK"
 
         # 在企业开发者后台配置的卡片模版id https://open-dev.dingtalk.com/fe/card
-        #card_template_id = os.getenv("DINGTALK_AI_CARD_TEMPLATE_ID")
+        # card_template_id = os.getenv("DINGTALK_AI_CARD_TEMPLATE_ID")
         card_template_id = self.bot_config["dingtalk_ai_card_template_id"]
         content_key = "content"
         card_data = {content_key: ""}
@@ -89,7 +90,7 @@ class DifyAiCardBotHandler(ChatbotHandler):
                 failed=False,
             )
         except Exception as e:
-            print(traceback.print_exc())
+            traceback.print_exc()
             logger.exception(e)
             card_instance.streaming(
                 card_instance_id,
@@ -110,15 +111,15 @@ class DifyAiCardBotHandler(ChatbotHandler):
             request_content = incoming_message.text.content
         user_id = f"dingtalk-{incoming_message.sender_nick}-{incoming_message.sender_staff_id}"
         conversation_id = self.cache.get(user_id)
-        #print(f"conversation_id={conversation_id}")
+        # print(f"conversation_id={conversation_id}")
         response = self.dify_api_client.query(
             inputs={
-                    "platform": "dingtalk",
-                    "userName": incoming_message.sender_nick, 
-                    "userId": incoming_message.sender_staff_id,
-                    "conversationType": incoming_message.conversation_type,
-                    "conversationTitle": incoming_message.conversation_title,
-                    },
+                "platform": "dingtalk",
+                "userName": incoming_message.sender_nick,
+                "userId": incoming_message.sender_staff_id,
+                "conversationType": incoming_message.conversation_type,
+                "conversationTitle": incoming_message.conversation_title,
+            },
             query=request_content,
             user=user_id,
             response_mode="streaming",
