@@ -4,14 +4,15 @@
 import json
 import os
 import traceback
-from typing import Callable
+from typing import Callable, Dict, Any, Optional
 
 from dingtalk_stream import AckMessage, ChatbotHandler, CallbackHandler, CallbackMessage, ChatbotMessage, AICardReplier
 from loguru import logger
+from requests import Response
 from sseclient import SSEClient
 
 from core.rediscache import RedisCache as Cache
-from core.dify_client import DifyClient
+from core.dify_client import ChatClient, DifyClient
 
 
 class HandlerFactory(object):
@@ -103,6 +104,33 @@ class DifyAiCardBotHandler(ChatbotHandler):
 
         return AckMessage.STATUS_OK, "OK"
 
+    # 返回值注意与卡片字段匹配
+    def split_think_content(self, content: str) -> Dict[str, str]:
+        """
+        将内容按照 <think> 标签分割为思维链（think）和主体内容（content）。
+        如果没有找到 <think> 标签，则返回空字符串作为思维链，原始内容作为主体内容。
+        如果找到了 <think> 标签但没有对应的 </think> 标签，则屏蔽 <think> 标签及其后面的所有内容。
+        """
+        start_tag = "<think>"
+        end_tag = "</think>"
+        # 查找 <think> 标签的位置
+        start_index = content.find(start_tag)
+        # 如果没有找到 <think> 标签，返回原始内容作为主体内容，思维链为空字符串
+        if start_index == -1:
+            return {"think": "", "content": content.strip()}
+        # 查找对应的 </think> 标签的位置
+        end_index = content.find(end_tag, start_index)
+        # 如果没有找到对应的 </think> 标签，屏蔽 <think> 标签及其后面的所有内容
+        if end_index == -1:
+            return {"think": content[start_index + len(start_tag):].strip(), "content": ""}
+        # 提取思维链部分
+        think_start = start_index + len(start_tag)
+        think_end = end_index
+        think = content[think_start:think_end].strip()
+        # 提取主体内容部分
+        content = content[end_index + len(end_tag):].strip()
+        return {"think": think, "content": content}
+
     def _call_dify_with_stream(self, incoming_message: ChatbotMessage, callback: Callable[[str], None]):
         if incoming_message.message_type != "text":
             # TODO: 暂时只支持文本消息
@@ -111,6 +139,15 @@ class DifyAiCardBotHandler(ChatbotHandler):
             request_content = incoming_message.text.content
         user_id = f"dingtalk-{incoming_message.sender_nick}-{incoming_message.sender_staff_id}"
         conversation_id = self.cache.get(user_id)
+        # 检查对话id是否存在,以免redis缓存影响
+        if conversation_id and self.bot_config.get("dify_app_type","") == "chatbot":
+            if isinstance(self.dify_api_client,ChatClient):
+                res:Response = self.dify_api_client.get_conversation_messages(user=user_id,conversation_id=conversation_id)  
+                # 如果对话不存在，则创建一个新的对话
+                if res.status_code == 404:
+                    conversation_id = ""
+                    #self.cache.delete(conversation_id)
+                    self.cache.set(user_id,conversation_id)
         # print(f"conversation_id={conversation_id}")
         response = self.dify_api_client.query(
             inputs={
@@ -166,6 +203,8 @@ class DifyAiCardBotHandler(ChatbotHandler):
             elif r.get("event") in ["workflow_started", "workflow_finished"]:
                 pass
             elif r.get("event") in ["node_started", "node_finished"]:
+                pass
+            elif r.get("event") in ["parallel_branch_started","parallel_branch_finished"]:
                 pass
             elif r.get("event") in ["message_end"]:
                 # 对话结束消息处理

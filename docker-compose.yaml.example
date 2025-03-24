@@ -8,7 +8,12 @@ services:
     volumes:
       - .:/work
       - pip_cache:/root/.cache/pip
+    environment:
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
+      - PIP_INDEX_URL=${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
     working_dir: /work
+    extra_hosts:
+      - host.docker.internal:host-gateway
     command: >
       sh -c "
             # 安装系统依赖
@@ -17,12 +22,20 @@ services:
             # 运行
             python app.py
             "
-    networks:
-      - 1panel-network
-
-networks:
-  1panel-network:
-    external: true
+  redis:
+    image: redis
+    container_name: redis
+    privileged: true
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+      - ./conf/redis.conf:/usr/local/etc/redis/redis.conf
+      - ./logs:/logs
+    command: ["redis-server","/usr/local/etc/redis/redis.conf"]
+    #ports:
+    #  - 6379:6379
+    environment:
+      - TZ="Asia/Shanghai"
 
 volumes:
   pip_cache:
